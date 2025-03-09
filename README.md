@@ -20,9 +20,13 @@ A feature-rich version with multiple innovative mechanics (gravity mode, portals
 ## How to Play
 1. Open either `snake.html` or `advanced-snake.html` in any modern web browser
 2. Controls for basic version:
-   - Arrow keys to change direction
-   - SPACE to shoot bullets
-   - Q to quit
+   - **Desktop:**
+     - Arrow keys to change direction
+     - SPACE to shoot bullets
+     - Q to quit
+   - **Mobile:**
+     - Touch directional buttons to change direction
+     - Touch SHOOT button to fire bullets
    - Eat enemy snake tails to score points
    - Shoot enemy snakes for bonus points
    - Avoid enemy snake heads and bodies
@@ -34,6 +38,7 @@ A feature-rich version with multiple innovative mechanics (gravity mode, portals
 
 ## Requirements
 - Any modern web browser with HTML5 support
+- Works on both desktop and mobile devices
 
 ## Changelog
 
@@ -42,3 +47,4 @@ A feature-rich version with multiple innovative mechanics (gravity mode, portals
 - Made enemy snakes move slower than the player (50% speed) for better balance
 - Improved enemy snake AI to prevent self-collisions
 - Reduced enemy spawn rate for better gameplay pacing
+- Added mobile support with touch controls that appear automatically on smaller screens

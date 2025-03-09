@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Snake Game with Predators & Shooting</title>
     <style>
         body {
@@ -55,6 +57,67 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        /* Mobile controls */
+        #mobile-controls {
+            display: none; /* Hidden by default, shown on small screens */
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        
+        .control-button {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #shoot-button {
+            background-color: rgba(255, 255, 0, 0.3);
+            width: 80px;
+            height: 80px;
+            font-size: 16px;
+        }
+        
+        /* Media query for mobile devices */
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: block;
+            }
+            
+            canvas {
+                width: 100%;
+                height: auto;
+                max-height: 70vh;
+            }
+            
+            #game-container {
+                width: 100%;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: center;
+                padding-top: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -65,6 +128,21 @@
             <h2>Game Over!</h2>
             <p id="final-score">Your score: 0</p>
             <button id="restart-button">Play Again</button>
+        </div>
+        
+        <!-- Mobile controls - only visible on small screens -->
+        <div id="mobile-controls">
+            <div class="control-row">
+                <div class="control-button" id="up-button">↑</div>
+            </div>
+            <div class="control-row">
+                <div class="control-button" id="left-button">←</div>
+                <div class="control-button" id="shoot-button">SHOOT</div>
+                <div class="control-button" id="right-button">→</div>
+            </div>
+            <div class="control-row">
+                <div class="control-button" id="down-button">↓</div>
+            </div>
         </div>
     </div>
 
@@ -613,9 +691,53 @@
             }
         }
 
-        // Event listeners
+        // Event listeners for keyboard
         document.addEventListener('keydown', handleKeyPress);
         restartButton.addEventListener('click', initGame);
+        
+        // Mobile control event listeners
+        const upButton = document.getElementById('up-button');
+        const downButton = document.getElementById('down-button');
+        const leftButton = document.getElementById('left-button');
+        const rightButton = document.getElementById('right-button');
+        const shootButton = document.getElementById('shoot-button');
+        
+        // Touch event handlers
+        upButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'down') nextDirection = 'up';
+        });
+        
+        downButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'up') nextDirection = 'down';
+        });
+        
+        leftButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'right') nextDirection = 'left';
+        });
+        
+        rightButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'left') nextDirection = 'right';
+        });
+        
+        shootButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            shootBullet();
+        });
+        
+        // Prevent default touch behavior to avoid scrolling while playing
+        document.querySelectorAll('.control-button').forEach(button => {
+            button.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+            });
+            
+            button.addEventListener('touchend', function(e) {
+                e.preventDefault();
+            });
+        });
 
         // Start the game
         initGame();

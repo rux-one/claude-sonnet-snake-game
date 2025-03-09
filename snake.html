@@ -320,7 +320,7 @@
                 if (newHead.y < 0) newHead.y = GRID_HEIGHT - 1;
                 if (newHead.y >= GRID_HEIGHT) newHead.y = 0;
                 
-                // Check collision with itself (enemy snake dies and turns to food)
+                // Check collision with itself - but instead of dying, choose a different direction
                 let selfCollision = false;
                 for (let j = 1; j < enemy.segments.length; j++) {
                     if (newHead.x === enemy.segments[j].x && newHead.y === enemy.segments[j].y) {
@@ -330,15 +330,52 @@
                 }
                 
                 if (selfCollision) {
-                    // Enemy snake dies
-                    enemySnakes.splice(i, 1);
-                    i--;
+                    // Instead of dying, try a different random direction
+                    const directions = [
+                        { x: 1, y: 0 },  // right
+                        { x: -1, y: 0 }, // left
+                        { x: 0, y: 1 },  // down
+                        { x: 0, y: -1 }  // up
+                    ];
                     
-                    // 50% chance to spawn a new enemy later
-                    if (Math.random() < 0.5) {
-                        setTimeout(spawnEnemySnake, 5000);
+                    // Filter out current direction and opposite direction
+                    const validDirections = directions.filter(dir => {
+                        // Not current direction
+                        const notCurrent = !(dir.x === enemy.direction.x && dir.y === enemy.direction.y);
+                        // Not opposite direction (would cause immediate collision)
+                        const notOpposite = !(dir.x === -enemy.direction.x && dir.y === -enemy.direction.y);
+                        return notCurrent && notOpposite;
+                    });
+                    
+                    if (validDirections.length > 0) {
+                        // Choose a random new direction
+                        const newDir = validDirections[Math.floor(Math.random() * validDirections.length)];
+                        enemy.direction = newDir;
+                        
+                        // Recalculate new head position
+                        newHead.x = head.x + enemy.direction.x;
+                        newHead.y = head.y + enemy.direction.y;
+                        
+                        // Wrap around screen edges
+                        if (newHead.x < 0) newHead.x = GRID_WIDTH - 1;
+                        if (newHead.x >= GRID_WIDTH) newHead.x = 0;
+                        if (newHead.y < 0) newHead.y = GRID_HEIGHT - 1;
+                        if (newHead.y >= GRID_HEIGHT) newHead.y = 0;
                     }
-                    continue;
+                    
+                    // Check if still colliding after direction change
+                    let stillColliding = false;
+                    for (let j = 0; j < enemy.segments.length; j++) {
+                        if (newHead.x === enemy.segments[j].x && newHead.y === enemy.segments[j].y) {
+                            stillColliding = true;
+                            break;
+                        }
+                    }
+                    
+                    // If still colliding, just skip movement this frame
+                    if (stillColliding) {
+                        continue;
+                    }
                 }
                 
                 // Add new head to enemy snake
@@ -366,8 +403,8 @@
                 }
             }
             
-            // Randomly spawn new enemy (5% chance each update if fewer than 3 enemies)
-            if (enemySnakes.length < 3 && Math.random() < 0.005) {
+            // Randomly spawn new enemy (only if fewer than 3 enemies and not too frequently)
+            if (enemySnakes.length < 3 && Math.random() < 0.002) { // Reduced chance to 0.2%
                 spawnEnemySnake();
             }
         }

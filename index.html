@@ -29,7 +29,7 @@
             color: white;
             font-size: 18px;
         }
-        #game-over {
+        #game-over, #controls-popup {
             position: absolute;
             top: 0;
             left: 0;
@@ -42,7 +42,26 @@
             background-color: rgba(0, 0, 0, 0.8);
             color: white;
             font-size: 24px;
+        }
+        
+        #game-over {
             display: none;
+        }
+        
+        #controls-popup {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #controls-list {
+            text-align: left;
+            margin: 20px auto;
+            max-width: 300px;
+            font-size: 18px;
+        }
+        
+        #controls-list li {
+            margin-bottom: 10px;
         }
         button {
             margin-top: 20px;
@@ -130,6 +149,18 @@
             <button id="restart-button">Play Again</button>
         </div>
         
+        <!-- Controls popup -->
+        <div id="controls-popup">
+            <h2>Snake Game Controls</h2>
+            <ul id="controls-list">
+                <li><strong>Arrow Keys:</strong> Move the snake</li>
+                <li><strong>Space Bar:</strong> Shoot bullets</li>
+                <li><strong>Mobile:</strong> Use on-screen buttons</li>
+            </ul>
+            <p>Collect food, avoid or shoot enemy snakes!</p>
+            <button id="start-game-button">Start Game</button>
+        </div>
+        
         <!-- Mobile controls - only visible on small screens -->
         <div id="mobile-controls">
             <div class="control-row">
@@ -195,6 +226,9 @@
             enemySnakes = [];
             bullets = [];
             bulletCooldown = 0;
+            
+            // Hide controls popup if it's visible
+            document.getElementById('controls-popup').style.display = 'none';
             
             // Place initial food
             placeFood();
@@ -703,6 +737,7 @@
         // Event listeners for keyboard
         document.addEventListener('keydown', handleKeyPress);
         restartButton.addEventListener('click', initGame);
+        document.getElementById('start-game-button').addEventListener('click', initGame);
         
         // Handle window resize (for orientation changes)
         window.addEventListener('resize', function() {
@@ -758,8 +793,9 @@
             });
         });
 
-        // Start the game
-        initGame();
+        // Show controls popup instead of immediately starting the game
+        document.getElementById('controls-popup').style.display = 'flex';
+        gameOver = true; // Prevent game from running until player starts it
     </script>
     
     <!-- Footer with GitHub link -->

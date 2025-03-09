@@ -2,6 +2,8 @@
 
 A classic Snake game built with HTML5 Canvas and JavaScript.
 
+We wanted to play around with Claude Code during a local meetup. Not a single line of code was written by a human.
+
 # Demo
 
 [See the latest version here](https://rux-one.github.io/claude-sonnet-snake-game)

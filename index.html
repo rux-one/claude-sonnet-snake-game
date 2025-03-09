@@ -230,6 +230,11 @@
             // Hide controls popup if it's visible
             document.getElementById('controls-popup').style.display = 'none';
             
+            // Show mobile controls if on a small screen
+            if (window.innerWidth <= 768) {
+                document.getElementById('mobile-controls').style.display = 'block';
+            }
+            
             // Place initial food
             placeFood();
             
@@ -795,6 +800,8 @@
 
         // Show controls popup instead of immediately starting the game
         document.getElementById('controls-popup').style.display = 'flex';
+        // Hide mobile controls when showing the popup
+        document.getElementById('mobile-controls').style.display = 'none';
         gameOver = true; // Prevent game from running until player starts it
     </script>
     

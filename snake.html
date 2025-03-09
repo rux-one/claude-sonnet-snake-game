@@ -99,6 +99,7 @@
         let score = 0;
         let gameOver = false;
         let gameLoop;
+        let frameCount = 0; // Frame counter for enemy movement
         
         let enemySnakes = []; // Enemy snakes that hunt the player
         let bullets = []; // Bullets shot by the player
@@ -194,6 +195,9 @@
         function gameUpdate() {
             if (gameOver) return;
             
+            // Increment frame counter
+            frameCount++;
+            
             // Update bullets
             updateBullets();
             
@@ -274,7 +278,11 @@
         // Draw game state
         // Function to update enemy snakes
         function updateEnemySnakes() {
-            // Process each enemy snake
+            // Process each enemy snake - only move enemies every 2 frames to make them slower than player
+            if (frameCount % 2 !== 0) {
+                return; // Skip enemy movement on odd frames
+            }
+            
             for (let i = 0; i < enemySnakes.length; i++) {
                 const enemy = enemySnakes[i];
                 

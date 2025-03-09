@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game with Stealth Segments, Predators & Shooting</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid white;
+        }
+        #game-container {
+            position: relative;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+        }
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 24px;
+            display: none;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="600" height="400"></canvas>
+        <div id="score">Score: 0</div>
+        <div id="game-over">
+            <h2>Game Over!</h2>
+            <p id="final-score">Your score: 0</p>
+            <button id="restart-button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game canvas and context
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('game-over');
+        const finalScoreElement = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+
+        // Game constants
+        const GRID_SIZE = 20;
+        const GRID_WIDTH = canvas.width / GRID_SIZE;
+        const GRID_HEIGHT = canvas.height / GRID_SIZE;
+        const FPS = 10;
+
+        // Colors
+        const COLOR_BACKGROUND = '#000000';
+        const COLOR_SNAKE_HEAD = '#4040FF';
+        const COLOR_SNAKE_BODY = '#00FF00';
+        const COLOR_FOOD = '#FF0000';
+        const COLOR_GRID = '#333333';
+        const COLOR_BULLET = '#FFFF00'; // Yellow bullets
+
+        // Game variables
+        let snake = [];
+        let food = {};
+        let direction = 'right';
+        let nextDirection = 'right';
+        let score = 0;
+        let gameOver = false;
+        let gameLoop;
+        let stealthSegments = []; // Track which segments of the snake are invisible
+        let enemySnakes = []; // Enemy snakes that hunt the player
+        let bullets = []; // Bullets shot by the player
+        let bulletCooldown = 0; // Cooldown timer for shooting
+
+        // Initialize the game
+        function initGame() {
+            // Reset game state
+            snake = [{ x: 10, y: 10, visible: true }];
+            score = 0;
+            direction = 'right';
+            nextDirection = 'right';
+            gameOver = false;
+            stealthSegments = [];
+            enemySnakes = [];
+            bullets = [];
+            bulletCooldown = 0;
+            
+            // Place initial food
+            placeFood();
+            
+            // Spawn initial enemy snake
+            spawnEnemySnake();
+            
+            // Update score display
+            updateScore();
+            
+            // Hide game over screen
+            gameOverElement.style.display = 'none';
+            
+            // Start game loop
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(gameUpdate, 1000 / FPS);
+        }
+        
+        // Spawn an enemy snake
+        function spawnEnemySnake() {
+            // Find a position away from player
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * GRID_WIDTH);
+                y = Math.floor(Math.random() * GRID_HEIGHT);
+            } while (distanceTo({ x, y }, snake[0]) < 10); // Keep distance from player
+            
+            // Create enemy snake
+            const enemySnake = {
+                segments: [{ x, y }],
+                length: 3 + Math.floor(Math.random() * 3), // Length 3-5
+                direction: { x: 0, y: 0 },
+                color: {
+                    head: '#FF3300', // Red for enemy head
+                    body: '#CC2200'  // Darker red for enemy body
+                }
+            };
+            
+            enemySnakes.push(enemySnake);
+        }
+        
+        // Helper function to calculate distance between points
+        function distanceTo(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Place food at random position
+        function placeFood() {
+            // Generate random position (avoiding snake's position)
+            let validPosition = false;
+            while (!validPosition) {
+                food = {
+                    x: Math.floor(Math.random() * GRID_WIDTH),
+                    y: Math.floor(Math.random() * GRID_HEIGHT)
+                };
+                validPosition = true;
+                
+                // Check if position overlaps with snake
+                for (let segment of snake) {
+                    if (segment.x === food.x && segment.y === food.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Update score display
+        function updateScore() {
+            scoreElement.textContent = `Score: ${score}`;
+        }
+
+        // Main game update loop
+        function gameUpdate() {
+            if (gameOver) return;
+            
+            // Update bullets
+            updateBullets();
+            
+            // Update snake direction
+            direction = nextDirection;
+            
+            // Calculate new head position
+            const head = { ...snake[0] };
+            switch (direction) {
+                case 'up': head.y--; break;
+                case 'down': head.y++; break;
+                case 'left': head.x--; break;
+                case 'right': head.x++; break;
+            }
+            
+            // Wrap around screen edges
+            if (head.x < 0) head.x = GRID_WIDTH - 1;
+            if (head.x >= GRID_WIDTH) head.x = 0;
+            if (head.y < 0) head.y = GRID_HEIGHT - 1;
+            if (head.y >= GRID_HEIGHT) head.y = 0;
+            
+            // Check collision with self
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === head.x && snake[i].y === head.y) {
+                    endGame();
+                    return;
+                }
+            }
+            
+            // Update enemy snakes
+            updateEnemySnakes();
+            
+            // Check collision with enemy snakes
+            for (const enemy of enemySnakes) {
+                for (let i = 0; i < enemy.segments.length; i++) {
+                    const segment = enemy.segments[i];
+                    
+                    // Player head collides with enemy segment
+                    if (head.x === segment.x && head.y === segment.y) {
+                        // If it's the enemy's tail, player can eat it
+                        if (i === enemy.segments.length - 1 && enemy.segments.length > 2) {
+                            // Eat enemy tail
+                            enemy.segments.pop();
+                            enemy.length--;
+                            score++; // Get points for eating enemy tail
+                            updateScore();
+                        } else {
+                            // Game over if hitting any other enemy segment
+                            endGame();
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // Add new head to snake (always visible)
+            head.visible = true;
+            snake.unshift(head);
+            
+            // Randomly create stealth segments
+            if (snake.length > 3 && Math.random() < 0.1) { // 10% chance each update
+                const randomIndex = Math.floor(Math.random() * (snake.length - 1)) + 1; // Don't make head invisible
+                stealthSegments.push({
+                    index: randomIndex,
+                    duration: 5 * FPS // Remain invisible for 5 seconds
+                });
+            }
+            
+            // Update stealth segments
+            for (let i = stealthSegments.length - 1; i >= 0; i--) {
+                stealthSegments[i].duration--;
+                // Remove expired stealth segments
+                if (stealthSegments[i].duration <= 0) {
+                    stealthSegments.splice(i, 1);
+                }
+            }
+            
+            // Apply stealth to segments
+            // First reset all segments to visible
+            for (let i = 1; i < snake.length; i++) {
+                snake[i].visible = true;
+            }
+            // Then apply stealth
+            for (const segment of stealthSegments) {
+                if (segment.index < snake.length) {
+                    snake[segment.index].visible = false;
+                }
+            }
+            
+            // Check if snake ate food
+            if (head.x === food.x && head.y === food.y) {
+                // Increase score
+                score++;
+                updateScore();
+                
+                // Place new food
+                placeFood();
+            } else {
+                // Remove tail if food wasn't eaten
+                snake.pop();
+            }
+            
+            // Draw game state
+            draw();
+        }
+
+        // Draw game state
+        // Function to update enemy snakes
+        function updateEnemySnakes() {
+            // Process each enemy snake
+            for (let i = 0; i < enemySnakes.length; i++) {
+                const enemy = enemySnakes[i];
+                
+                // Basic AI: move toward player or food
+                let target;
+                if (Math.random() < 0.7) {
+                    // Target player
+                    target = snake[0];
+                } else {
+                    // Target food
+                    target = food;
+                }
+                
+                // Calculate direction to target
+                const head = enemy.segments[0];
+                const dx = target.x - head.x;
+                const dy = target.y - head.y;
+                
+                // Choose direction based on distance
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    enemy.direction = { x: dx > 0 ? 1 : -1, y: 0 };
+                } else {
+                    enemy.direction = { x: 0, y: dy > 0 ? 1 : -1 };
+                }
+                
+                // Calculate new head position
+                const newHead = { 
+                    x: head.x + enemy.direction.x,
+                    y: head.y + enemy.direction.y
+                };
+                
+                // Wrap around screen edges
+                if (newHead.x < 0) newHead.x = GRID_WIDTH - 1;
+                if (newHead.x >= GRID_WIDTH) newHead.x = 0;
+                if (newHead.y < 0) newHead.y = GRID_HEIGHT - 1;
+                if (newHead.y >= GRID_HEIGHT) newHead.y = 0;
+                
+                // Check collision with itself (enemy snake dies and turns to food)
+                let selfCollision = false;
+                for (let j = 1; j < enemy.segments.length; j++) {
+                    if (newHead.x === enemy.segments[j].x && newHead.y === enemy.segments[j].y) {
+                        selfCollision = true;
+                        break;
+                    }
+                }
+                
+                if (selfCollision) {
+                    // Enemy snake dies
+                    enemySnakes.splice(i, 1);
+                    i--;
+                    
+                    // 50% chance to spawn a new enemy later
+                    if (Math.random() < 0.5) {
+                        setTimeout(spawnEnemySnake, 5000);
+                    }
+                    continue;
+                }
+                
+                // Add new head to enemy snake
+                enemy.segments.unshift(newHead);
+                
+                // Check if enemy snake eats food
+                if (newHead.x === food.x && newHead.y === food.y) {
+                    enemy.length++; // Grow enemy snake
+                    placeFood(); // Place new food
+                } else if (enemy.segments.length > enemy.length) {
+                    // Remove tail if food wasn't eaten
+                    enemy.segments.pop();
+                }
+                
+                // Check if enemy snake eats player's tail (not head)
+                if (snake.length > 1) {
+                    const playerTail = snake[snake.length - 1];
+                    if (newHead.x === playerTail.x && newHead.y === playerTail.y) {
+                        // Enemy eats player's tail
+                        if (snake.length > 2) { // Don't let snake get too short
+                            snake.pop();
+                            enemy.length++; // Enemy grows
+                        }
+                    }
+                }
+            }
+            
+            // Randomly spawn new enemy (5% chance each update if fewer than 3 enemies)
+            if (enemySnakes.length < 3 && Math.random() < 0.005) {
+                spawnEnemySnake();
+            }
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = COLOR_BACKGROUND;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Optional: Draw grid
+            ctx.fillStyle = COLOR_GRID;
+            for (let x = 0; x < GRID_WIDTH; x++) {
+                for (let y = 0; y < GRID_HEIGHT; y++) {
+                    ctx.strokeRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                }
+            }
+            
+            // Draw food
+            ctx.fillStyle = COLOR_FOOD;
+            ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            
+            // Draw bullets
+            bullets.forEach(bullet => {
+                ctx.fillStyle = COLOR_BULLET;
+                
+                // Draw smaller than a full grid cell
+                const bulletSize = GRID_SIZE / 2;
+                ctx.beginPath();
+                ctx.arc(
+                    bullet.x * GRID_SIZE + GRID_SIZE / 2,
+                    bullet.y * GRID_SIZE + GRID_SIZE / 2,
+                    bulletSize / 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            });
+            
+            // Draw enemy snakes
+            enemySnakes.forEach(enemy => {
+                // Draw enemy body
+                for (let i = enemy.segments.length - 1; i > 0; i--) {
+                    const segment = enemy.segments[i];
+                    ctx.fillStyle = enemy.color.body;
+                    ctx.fillRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                    
+                    // Draw border
+                    ctx.strokeStyle = 'white';
+                    ctx.strokeRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                }
+                
+                // Draw enemy head
+                if (enemy.segments.length > 0) {
+                    const head = enemy.segments[0];
+                    ctx.fillStyle = enemy.color.head;
+                    ctx.fillRect(head.x * GRID_SIZE, head.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                    
+                    // Draw border
+                    ctx.strokeStyle = 'white';
+                    ctx.strokeRect(head.x * GRID_SIZE, head.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                }
+            });
+            
+            // Draw player snake
+            snake.forEach((segment, index) => {
+                // Skip invisible segments
+                if (segment.visible === false) {
+                    return;
+                }
+                
+                // Use different color for head
+                ctx.fillStyle = index === 0 ? COLOR_SNAKE_HEAD : COLOR_SNAKE_BODY;
+                ctx.fillRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                
+                // Draw border around segment
+                ctx.strokeStyle = 'white';
+                ctx.strokeRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            });
+        }
+
+        // End the game
+        function endGame() {
+            gameOver = true;
+            clearInterval(gameLoop);
+            
+            // Show game over screen
+            finalScoreElement.textContent = `Your score: ${score}`;
+            gameOverElement.style.display = 'flex';
+        }
+
+        // Shoot a bullet
+        function shootBullet() {
+            if (bulletCooldown <= 0) {
+                // Determine bullet direction based on snake direction
+                let bulletDir = { x: 0, y: 0 };
+                switch(direction) {
+                    case 'up': bulletDir = { x: 0, y: -1 }; break;
+                    case 'down': bulletDir = { x: 0, y: 1 }; break;
+                    case 'left': bulletDir = { x: -1, y: 0 }; break;
+                    case 'right': bulletDir = { x: 1, y: 0 }; break;
+                }
+                
+                // Create bullet at snake's head position
+                bullets.push({
+                    x: snake[0].x,
+                    y: snake[0].y,
+                    dir: bulletDir,
+                    speed: 2 // Bullet moves faster than snake
+                });
+                
+                // Set cooldown (5 frames = half a second at 10 FPS)
+                bulletCooldown = 5;
+            }
+        }
+        
+        // Update bullets
+        function updateBullets() {
+            // Reduce cooldown
+            if (bulletCooldown > 0) {
+                bulletCooldown--;
+            }
+            
+            // Move bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                
+                // Move bullet
+                bullet.x += bullet.dir.x * bullet.speed;
+                bullet.y += bullet.dir.y * bullet.speed;
+                
+                // Remove bullet if out of bounds
+                if (bullet.x < 0 || bullet.x >= GRID_WIDTH || 
+                    bullet.y < 0 || bullet.y >= GRID_HEIGHT) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // Check collision with enemy snakes
+                for (let j = 0; j < enemySnakes.length; j++) {
+                    const enemy = enemySnakes[j];
+                    
+                    for (let k = 0; k < enemy.segments.length; k++) {
+                        const segment = enemy.segments[k];
+                        
+                        // Check if bullet hit enemy segment
+                        if (Math.abs(bullet.x - segment.x) < 1 && Math.abs(bullet.y - segment.y) < 1) {
+                            // Remove bullet
+                            bullets.splice(i, 1);
+                            
+                            // If hit was head, kill the enemy
+                            if (k === 0) {
+                                enemySnakes.splice(j, 1);
+                                score += 3; // Bonus points for headshot
+                                updateScore();
+                                
+                                // 70% chance to spawn new enemy later
+                                if (Math.random() < 0.7) {
+                                    setTimeout(spawnEnemySnake, 3000);
+                                }
+                            } else {
+                                // Otherwise, remove the hit segment
+                                enemy.segments.splice(k, 1);
+                                enemy.length--;
+                                
+                                // If enemy too short, kill it
+                                if (enemy.segments.length < 2) {
+                                    enemySnakes.splice(j, 1);
+                                    score += 2;
+                                    updateScore();
+                                } else {
+                                    score += 1;
+                                    updateScore();
+                                }
+                            }
+                            
+                            // Exit both loops
+                            j = enemySnakes.length;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Key press handler
+        function handleKeyPress(e) {
+            // Change direction based on arrow keys
+            // Prevent 180-degree turns
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (direction !== 'down') nextDirection = 'up';
+                    break;
+                case 'ArrowDown':
+                    if (direction !== 'up') nextDirection = 'down';
+                    break;
+                case 'ArrowLeft':
+                    if (direction !== 'right') nextDirection = 'left';
+                    break;
+                case 'ArrowRight':
+                    if (direction !== 'left') nextDirection = 'right';
+                    break;
+                case ' ': // Space bar for shooting
+                    shootBullet();
+                    break;
+                case 'q':
+                case 'Q':
+                    endGame();
+                    break;
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', handleKeyPress);
+        restartButton.addEventListener('click', initGame);
+
+        // Start the game
+        initGame();
+    </script>
+</body>
+</html>

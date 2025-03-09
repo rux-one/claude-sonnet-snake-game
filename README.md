@@ -2,6 +2,10 @@
 
 A classic Snake game built with HTML5 Canvas and JavaScript.
 
+# Demo
+
+[See the latest version here](https://rux-one.github.io/claude-sonnet-snake-game)
+
 ## Versions
 
 ### Basic Snake (`snake.html`)

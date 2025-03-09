@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game with Stealth Segments, Predators & Shooting</title>
+    <title>Snake Game with Predators & Shooting</title>
     <style>
         body {
             display: flex;
@@ -99,7 +99,7 @@
         let score = 0;
         let gameOver = false;
         let gameLoop;
-        let stealthSegments = []; // Track which segments of the snake are invisible
+        
         let enemySnakes = []; // Enemy snakes that hunt the player
         let bullets = []; // Bullets shot by the player
         let bulletCooldown = 0; // Cooldown timer for shooting
@@ -107,12 +107,12 @@
         // Initialize the game
         function initGame() {
             // Reset game state
-            snake = [{ x: 10, y: 10, visible: true }];
+            snake = [{ x: 10, y: 10 }];
             score = 0;
             direction = 'right';
             nextDirection = 'right';
             gameOver = false;
-            stealthSegments = [];
+
             enemySnakes = [];
             bullets = [];
             bulletCooldown = 0;
@@ -249,39 +249,10 @@
                 }
             }
             
-            // Add new head to snake (always visible)
-            head.visible = true;
+            // Add new head to snake
             snake.unshift(head);
             
-            // Randomly create stealth segments
-            if (snake.length > 3 && Math.random() < 0.1) { // 10% chance each update
-                const randomIndex = Math.floor(Math.random() * (snake.length - 1)) + 1; // Don't make head invisible
-                stealthSegments.push({
-                    index: randomIndex,
-                    duration: 5 * FPS // Remain invisible for 5 seconds
-                });
-            }
-            
-            // Update stealth segments
-            for (let i = stealthSegments.length - 1; i >= 0; i--) {
-                stealthSegments[i].duration--;
-                // Remove expired stealth segments
-                if (stealthSegments[i].duration <= 0) {
-                    stealthSegments.splice(i, 1);
-                }
-            }
-            
-            // Apply stealth to segments
-            // First reset all segments to visible
-            for (let i = 1; i < snake.length; i++) {
-                snake[i].visible = true;
-            }
-            // Then apply stealth
-            for (const segment of stealthSegments) {
-                if (segment.index < snake.length) {
-                    snake[segment.index].visible = false;
-                }
-            }
+
             
             // Check if snake ate food
             if (head.x === food.x && head.y === food.y) {
@@ -454,10 +425,7 @@
             
             // Draw player snake
             snake.forEach((segment, index) => {
-                // Skip invisible segments
-                if (segment.visible === false) {
-                    return;
-                }
+
                 
                 // Use different color for head
                 ctx.fillStyle = index === 0 ? COLOR_SNAKE_HEAD : COLOR_SNAKE_BODY;

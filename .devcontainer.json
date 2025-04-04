@@ -20,5 +20,6 @@
   "remoteUser": "node",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
-  }
+  },
+  "appPort": ["3000:3000"]
 }

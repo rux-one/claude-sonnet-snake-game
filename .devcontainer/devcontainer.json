@@ -1,20 +1,10 @@
 {
   "name": "Snake Game Dev Environment",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "forwardPorts": ["3000"], // Keep for client-side forwarding if needed
   "postCreateCommand": "npm install -g http-server",
   "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "ritwickdey.liveserver"
-      ],
-      "settings": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "liveServer.settings.port": 3000
-      }
-    }
+     // ... rest of customizations ...
   },
   "remoteUser": "node",
   "features": {

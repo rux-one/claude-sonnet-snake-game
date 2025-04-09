@@ -1,8 +1,10 @@
 {
   "name": "Snake Game Dev Environment",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
-  "forwardPorts": ["3000"], // Keep for client-side forwarding if needed
+  "forwardPorts": [3000],
   "postCreateCommand": "npm install -g http-server",
+  // Add this command to start the server in the background when you attach
+  "postAttachCommand": "http-server ${containerWorkspaceFolder} -p 3000",
   "customizations": {
      // ... rest of customizations ...
   },
@@ -10,5 +12,5 @@
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "appPort": [3000]
+  "appPort": [3000] // Informs VS Code the app runs on port 3000
 }

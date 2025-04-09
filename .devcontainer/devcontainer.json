@@ -1,7 +1,6 @@
 {
   "name": "Snake Game Dev Environment",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
-  "forwardPorts": [3000], // Keep for client-side forwarding if needed
   "postCreateCommand": "npm install -g http-server",
   "customizations": {
     "vscode": {
